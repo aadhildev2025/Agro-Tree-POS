@@ -26,6 +26,11 @@ app.use(async (req, res, next) => {
   }
 });
 
+// Health check
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Agro-Tree POS API is running ✅' });
+});
+
 // --- Auth ---
 app.post('/api/auth/login', async (req, res) => {
   try {
