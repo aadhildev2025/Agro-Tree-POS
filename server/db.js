@@ -1,14 +1,20 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
+let cached = null;
+
 const connectDB = async () => {
+  if (cached && mongoose.connection.readyState === 1) {
+    return cached;
+  }
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    cached = await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ Connected to MongoDB Atlas');
     await seedDefaults();
+    return cached;
   } catch (error) {
     console.error('❌ MongoDB connection error:', error.message);
-    // Removed process.exit(1) to allow server to stay alive during network blips
+    throw error;
   }
 };
 

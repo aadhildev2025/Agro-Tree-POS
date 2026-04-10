@@ -11,18 +11,19 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Initialize database
-connectDB();
 
-// Middleware to check DB connection
-app.use((req, res, next) => {
-  if (mongoose.connection.readyState !== 1) {
+
+// Middleware: ensure DB is connected before every request
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
     return res.status(503).json({ 
       success: false, 
       message: 'Database is offline. Please check your internet connection or IP whitelist.' 
     });
   }
-  next();
 });
 
 // --- Auth ---
