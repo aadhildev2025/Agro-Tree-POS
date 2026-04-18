@@ -245,7 +245,7 @@ const Dashboard = ({ user }) => {
                     <div className="alert-indicator"></div>
                     <div className="alert-content">
                       <span className="alert-title">{p.name}</span>
-                      <span className="alert-desc">Nearing expiry: {p.expiry_date}</span>
+                      <span className="alert-desc">Nearing expiry: {new Date(p.expiry_date).toLocaleDateString()}</span>
                     </div>
                   </div>
                 ))}

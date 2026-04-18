@@ -50,10 +50,10 @@ async function printReceipt(saleData, storeInfo) {
     printer.drawLine();
     printer.alignRight();
     const subtotal = items.reduce((s, i) => s + (i.unit_price * i.quantity), 0);
-    printer.println(`Subtotal: $${subtotal.toFixed(2)}`);
-    printer.println(`Discount: -$${(saleData.discount || 0).toFixed(2)}`);
+    printer.println(`Subtotal: Rs.${subtotal.toFixed(2)}`);
+    printer.println(`Discount: -Rs.${(saleData.discount || 0).toFixed(2)}`);
     printer.bold(true);
-    printer.println(`TOTAL: $${(saleData.total_amount || subtotal).toFixed(2)}`);
+    printer.println(`TOTAL: Rs.${(saleData.total_amount || subtotal).toFixed(2)}`);
     printer.bold(false);
     printer.newLine();
     

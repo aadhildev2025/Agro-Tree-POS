@@ -290,6 +290,18 @@ app.get('/api/reports/sales', async (req, res) => {
         { $project: { label: "$_id", value: 1, _id: 0 } },
         { $sort: { label: 1 } }
       ]);
+    } else if (period === 'weekly') {
+      aggregate = await Sale.aggregate([
+        { $match: { ...filter, created_at: { $gte: new Date(new Date().setDate(new Date().getDate() - 84)) } } }, // ~3 months
+        { 
+          $group: { 
+            _id: { $dateToString: { format: "%Y-W%V", date: "$created_at" } },
+            value: { $sum: "$total_amount" }
+          } 
+        },
+        { $project: { label: "$_id", value: 1, _id: 0 } },
+        { $sort: { label: 1 } }
+      ]);
     } else if (period === 'monthly') {
       aggregate = await Sale.aggregate([
         { $match: filter },
@@ -311,20 +323,35 @@ app.get('/api/reports/sales', async (req, res) => {
 
 app.get('/api/reports/history', async (req, res) => {
   try {
-    const { month, year } = req.query;
+    const { month, year, startDate, endDate, period } = req.query;
     let filter = { payment_method: { $ne: 'repayment' } };
 
-    if (month && year) {
-      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
-      filter.created_at = { $gte: startDate, $lte: endDate };
+    if (startDate && endDate) {
+      filter.created_at = { 
+        $gte: new Date(new Date(startDate).setHours(0,0,0,0)), 
+        $lte: new Date(new Date(endDate).setHours(23,59,59,999)) 
+      };
+    } else if (period === 'today') {
+      const today = new Date();
+      filter.created_at = { 
+        $gte: new Date(today.setHours(0,0,0,0)), 
+        $lte: new Date(today.setHours(23,59,59,999)) 
+      };
+    } else if (period === 'weekly') {
+      const start = new Date();
+      start.setDate(start.getDate() - 7);
+      filter.created_at = { $gte: start };
+    } else if (month && year) {
+      const start = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const end = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
+      filter.created_at = { $gte: start, $lte: end };
     }
 
     const history = await Sale.find(filter)
       .populate('cashier', 'full_name')
       .populate('customer', 'name')
       .sort({ created_at: -1 })
-      .limit(month && year ? 0 : 100); // Unlimit if filtering by month
+      .limit((month && year) || period || (startDate && endDate) ? 0 : 100);
     
     // Format to match old SQL structure for frontend
     const formatted = history.map(s => {
@@ -507,7 +534,7 @@ app.get('/api/stats/summary', async (req, res) => {
     const thirtyDaysLater = new Date();
     thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
     const nearingExpiry = await Product.countDocuments({
-      expiry_date: { $lte: thirtyDaysLater }
+      expiry_date: { $lte: thirtyDaysLater, $gte: new Date() }
     });
 
     res.json({

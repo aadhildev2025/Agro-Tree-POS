@@ -108,7 +108,7 @@ const Products = () => {
       setFormData({
         ...product,
         category_id: (product.category?._id || product.category_id || (typeof product.category === 'string' ? product.category : '')),
-        expiry_date: product.expiry_date || ''
+        expiry_date: product.expiry_date ? product.expiry_date.split('T')[0] : ''
       });
       const currentCatId = product.category?._id || product.category_id || (typeof product.category === 'string' ? product.category : '');
       const cat = categories.find(c => (c._id || c.id) === currentCatId);
@@ -308,6 +308,7 @@ const Products = () => {
                     <th>Category</th>
                     <th>Price</th>
                     <th>Stock Level</th>
+                    <th>Expiry</th>
                     <th>Status</th>
                     <th></th>
                   </tr>
@@ -348,6 +349,11 @@ const Products = () => {
                             ></div>
                           </div>
                         </div>
+                      </td>
+                      <td>
+                        <span className="expiry-text">
+                          {p.expiry_date ? new Date(p.expiry_date).toLocaleDateString() : 'N/A'}
+                        </span>
                       </td>
                       <td>
                         {p.stock <= 0 ? (
@@ -591,6 +597,14 @@ const Products = () => {
                       type="number"
                       value={formData.low_stock_threshold}
                       onChange={(e) => setFormData({ ...formData, low_stock_threshold: parseInt(e.target.value) })}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>Expiry Date</label>
+                    <input
+                      type="date"
+                      value={formData.expiry_date}
+                      onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
                     />
                   </div>
                 </div>

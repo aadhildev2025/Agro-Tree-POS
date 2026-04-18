@@ -36,12 +36,14 @@ const api = {
 
   // Reports
   getSalesReport: ({ period }) => request(`/reports/sales?period=${period}`),
-  getSalesHistory: ({ month, year } = {}) => {
-    let url = '/reports/history';
-    if (month && year) {
-      url += `?month=${month}&year=${year}`;
-    }
-    return request(url);
+  getSalesHistory: ({ month, year, period, startDate, endDate } = {}) => {
+    let url = '/reports/history?';
+    if (period) url += `period=${period}&`;
+    if (month) url += `month=${month}&`;
+    if (year) url += `year=${year}&`;
+    if (startDate) url += `startDate=${startDate}&`;
+    if (endDate) url += `endDate=${endDate}&`;
+    return request(url.slice(0, -1)); // Remove trailing & or ?
   },
 
   getAnalyticsSummary: () => request('/reports/analytics/summary'),

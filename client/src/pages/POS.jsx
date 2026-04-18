@@ -12,7 +12,8 @@ import {
   X,
   CheckCircle2,
   ChevronRight,
-  Package
+  Package,
+  Printer
 } from 'lucide-react';
 
 const POS = ({ user }) => {
@@ -468,7 +469,7 @@ const POS = ({ user }) => {
                 setIsReceiptModalOpen(false);
                 setIsSuccessOpen(true);
               }}>
-                <Package size={20} />
+                <Printer size={20} />
                 <span>Print Receipt</span>
               </button>
             </div>

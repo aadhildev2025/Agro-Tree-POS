@@ -12,7 +12,8 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
-  X
+  X,
+  Printer
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -59,6 +60,9 @@ const Reports = () => {
   const [selectedSale, setSelectedSale] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [historyPeriod, setHistoryPeriod] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const location = useLocation();
 
@@ -72,13 +76,19 @@ const Reports = () => {
 
   useEffect(() => {
     fetchData();
-  }, [period, activeTab, selectedMonth, selectedYear]);
+  }, [period, activeTab, selectedMonth, selectedYear, historyPeriod, startDate, endDate]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       if (activeTab === 'history') {
-        const data = await api.getSalesHistory({ month: selectedMonth, year: selectedYear });
+        const data = await api.getSalesHistory({ 
+          month: selectedMonth, 
+          year: selectedYear,
+          period: historyPeriod === 'all' ? null : historyPeriod,
+          startDate: historyPeriod === 'custom' ? startDate : null,
+          endDate: historyPeriod === 'custom' ? endDate : null
+        });
         setHistory(data);
       } else if (activeTab === 'analysis') {
         const sales = await api.getSalesReport({ period });
@@ -246,27 +256,61 @@ const Reports = () => {
             <div className="history-filters">
               <div className="filter-group">
                 <select 
-                  value={selectedMonth} 
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="filter-select"
+                  value={historyPeriod} 
+                  onChange={(e) => setHistoryPeriod(e.target.value)}
+                  className="filter-select period-type"
                 >
-                  <option value="">All Months</option>
-                  {[...Array(12)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>
-                      {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                    </option>
-                  ))}
+                  <option value="all">All Transactions</option>
+                  <option value="today">Today</option>
+                  <option value="weekly">This Week</option>
+                  <option value="monthly">By Month/Year</option>
+                  <option value="custom">Custom Range</option>
                 </select>
-                <select 
-                  value={selectedYear} 
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="filter-select"
-                >
-                  {[...Array(5)].map((_, i) => {
-                    const year = new Date().getFullYear() - i;
-                    return <option key={year} value={year}>{year}</option>;
-                  })}
-                </select>
+
+                {historyPeriod === 'monthly' && (
+                  <>
+                    <select 
+                      value={selectedMonth} 
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="">All Months</option>
+                      {[...Array(12)].map((_, i) => (
+                        <option key={i + 1} value={i + 1}>
+                          {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                        </option>
+                      ))}
+                    </select>
+                    <select 
+                      value={selectedYear} 
+                      onChange={(e) => setSelectedYear(e.target.value)}
+                      className="filter-select"
+                    >
+                      {[...Array(5)].map((_, i) => {
+                        const year = new Date().getFullYear() - i;
+                        return <option key={year} value={year}>{year}</option>;
+                      })}
+                    </select>
+                  </>
+                )}
+
+                {historyPeriod === 'custom' && (
+                  <div className="date-range-inputs">
+                    <input 
+                      type="date" 
+                      value={startDate} 
+                      onChange={(e) => setStartDate(e.target.value)} 
+                      className="filter-select"
+                    />
+                    <span>to</span>
+                    <input 
+                      type="date" 
+                      value={endDate} 
+                      onChange={(e) => setEndDate(e.target.value)} 
+                      className="filter-select"
+                    />
+                  </div>
+                )}
               </div>
               <div className="export-cluster">
                 <button onClick={exportToPDF} className="export-pill pdf">
@@ -283,6 +327,7 @@ const Reports = () => {
           {activeTab === 'analysis' && (
             <div className="period-pill-group">
               <button className={period === 'daily' ? 'active' : ''} onClick={() => setPeriod('daily')}>Daily</button>
+              <button className={period === 'weekly' ? 'active' : ''} onClick={() => setPeriod('weekly')}>Weekly</button>
               <button className={period === 'monthly' ? 'active' : ''} onClick={() => setPeriod('monthly')}>Monthly</button>
             </div>
           )}
@@ -336,9 +381,25 @@ const Reports = () => {
                         <span className="amount-bold">Rs.{h.total_amount.toLocaleString()}</span>
                       </td>
                       <td>
-                        <button className="details-btn">
-                          <ChevronRight size={18} />
-                        </button>
+                        <div className="action-cell">
+                          <button 
+                            className="details-btn print-direct" 
+                            title="Quick Print"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              api.printReceipt({
+                                ...h,
+                                saleId: h._id,
+                                cashier_name: h.cashier_name
+                              });
+                            }}
+                          >
+                            <Printer size={18} />
+                          </button>
+                          <button className="details-btn">
+                            <ChevronRight size={18} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -503,7 +564,7 @@ const Reports = () => {
                   cashier_name: selectedSale.cashier_name
                 });
               }}>
-                <Download size={18} />
+                <Printer size={18} />
                 <span>Print Receipt</span>
               </button>
             </div>
@@ -640,6 +701,20 @@ const Reports = () => {
           background: white;
         }
 
+        .filter-select.period-type {
+          background: #1b5e20;
+          color: white;
+          border-color: #1b5e20;
+        }
+
+        .date-range-inputs {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          color: #64748b;
+          font-weight: 700;
+        }
+
         .glass-table-container {
           background: white;
           border-radius: 2rem;
@@ -705,6 +780,17 @@ const Reports = () => {
           border-radius: 0.5rem; transition: all 0.2s;
         }
         .details-btn:hover { background: #f1f5f9; color: #1b5e20; }
+        
+        .action-cell {
+          display: flex;
+          gap: 0.5rem;
+          justify-content: flex-end;
+        }
+
+        .details-btn.print-direct:hover {
+          background: #ecf3f0;
+          color: #1b5e20;
+        }
 
         .analysis-top-row {
           display: grid;
